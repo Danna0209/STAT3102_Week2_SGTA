@@ -1,0 +1,193 @@
+---
+title: "STAT3102 - Week 2 SGTA Report"
+author: "Pyo Seo Yeon"
+date: "2026-10-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(here)
+library(scales)
+```
+
+## Exercise 1: Sydney House Prices (Q2 2025)
+
+### 1. Load Data
+```{r load-prices}
+prices <- read_csv(here("house_prices.csv"))
+
+# Clean price column to numeric for plotting and stats
+prices$Price_num <- as.numeric(gsub(",", "", prices$Price))
+head(prices)
+```
+
+### 2. Descriptive Statistics for Allawah
+```{r stats-allawah}
+Allawah <- filter(prices, Suburb == "Allawah")
+summary(Allawah$Price_num)
+```
+
+### 3. Descriptive Statistics for Hurstville
+```{r stats-hurstville}
+Hurstville <- filter(prices, Suburb == "Hurstville")
+summary(Hurstville$Price_num)
+```
+
+### 4. Visualizing Suburb Price Distributions
+```{r house-prices-boxplot, fig.width=8, fig.height=5}
+ggplot(prices, aes(x = Suburb, y = Price_num, fill = Suburb)) +
+  geom_boxplot(alpha = 0.7, outlier.colour = "red", outlier.size = 2) +
+  scale_y_continuous(labels = dollar_format()) +
+  theme_minimal() +
+  labs(
+    title = "House Price Distribution by Suburb (Q2 2025)",
+    x = "Suburb",
+    y = "Price (AUD)"
+  ) +
+  theme(legend.position = "none")
+```
+
+### 5. Summary Findings
+Hurstville displayed a higher average sales price ($2,158,560) and median price ($1,930,000) compared to Allawah, which recorded a mean of $1,924,000 and a median of $1,868,000. Furthermore, Hurstville experienced significantly wider price dispersion ($1,426,000 to $3,888,000 with upper-end outliers) than Allawah ($1,621,000 to $2,339,000).
+
+---
+
+## Exercise 2: STAT270 Survey Data
+
+### 1. Load & Inspect Data
+```{r load-stat270}
+mydata <- read_csv(here("stat270.csv"))
+head(mydata)
+glimpse(mydata)
+```
+
+### 2. Statistical Divisions (`statdiv`)
+
+```{r statdiv-prep}
+mydata$statdiv <- as.factor(mydata$statdiv)
+levels(mydata$statdiv) <- c(
+  "Inner Sydney", "Eastern Suburbs", "St George/Sutherland",
+  "Canterbury/Bankstown", "Fairfield/Liverpool", "Outer SW Sydney",
+  "Blacktown/Baulkham Hills", "Inner Western", "Central Western",
+  "Lower Northern", "Hornsby/Kuringai", "Northern Beaches",
+  "Gosford/Wyong", "Missing"
+)
+
+table(mydata$statdiv)
+```
+
+```{r statdiv-barchart, fig.width=9, fig.height=5}
+statdiv_df <- as.data.frame(table(mydata$statdiv))
+names(statdiv_df) <- c("Division", "Count")
+
+ggplot(statdiv_df, aes(x = reorder(Division, Count), y = Count)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Distribution of Students by Statistical Division",
+    x = "Statistical Division",
+    y = "Student Count"
+  )
+```
+
+**Finding:** The vast majority of surveyed STAT270 students reside in northern Sydney, with Hornsby/Kuringai (22 students) and Northern Beaches (15 students) accounting for nearly half of the cohort.
+
+### 3. Student Country of Birth (`country`)
+
+```{r country-barchart, fig.width=9, fig.height=7}
+counts <- table(mydata$country)
+par(las = 2, mar = c(5, 8, 4, 2)) # Adjust margins for long country names
+barplot(
+  counts, 
+  main = "Country Students Come From",
+  xlab = "Count", 
+  horiz = TRUE, 
+  cex.names = 0.7,
+  col = "darkseagreen"
+)
+```
+
+**Finding:** While Australia is the most common birthplace (22 students), there is a strong international presence led by Hong Kong (17 students) and Malaysia (7 students).
+
+---
+
+## Exercise 3: Compliance with Ehrenberg’s Presentation Rules
+
+1. **Ordering by Size:** Rows and plot items are ordered logically by frequency/magnitude rather than alphabetically.
+2. **Rounding Numbers:** Summary statistics and scale figures avoid excessive decimal places.
+3. **Column Alignment:** Numerical tables right-align figures to ensure place values align visually.
+4. **Minimal Clutter:** Visual layouts minimize distracting grid lines and non-essential borders.
+
+---
+
+## Exercise 4: Sydney Morning Herald Table Analysis & Visual Summary
+
+### 1. Critical Commentary
+- **Unranked Sorting:** Suburbs in the original article were presented without a logical descending order.
+- **Inconsistent Units:** Numeric figures mixed text strings and dollar symbols within raw data cells.
+- **Visual Noise:** Lack of rounding hampered quick comparisons across columns.
+
+### 2. Improved Table & Visual Representation
+
+| Rank | Suburb | Region | Median Hold Period (Years) | Median House Price ($) |
+| :---: | :--- | :--- | :---: | :---: |
+| 1 | St Johns Park | Greater Western Sydney | 20.2 | 1,050,000 |
+| 2 | Greenfield Park | Greater Western Sydney | 19.8 | 1,120,000 |
+| 3 | Abbotsbury | Greater Western Sydney | 19.1 | 1,410,000 |
+| 4 | Monterey | St George | 18.6 | 2,350,000 |
+| 5 | Wheeler Heights | Northern Beaches | 18.2 | 2,210,000 |
+
+```{r smh-chart, fig.width=8, fig.height=4}
+smh_data <- data.frame(
+  Suburb = factor(c("St Johns Park", "Greenfield Park", "Abbotsbury", "Monterey", "Wheeler Heights"),
+                  levels = rev(c("St Johns Park", "Greenfield Park", "Abbotsbury", "Monterey", "Wheeler Heights"))),
+  Hold_Period = c(20.2, 19.8, 19.1, 18.6, 18.2)
+)
+
+ggplot(smh_data, aes(x = Hold_Period, y = Suburb)) +
+  geom_col(fill = "firebrick", width = 0.6) +
+  geom_text(aes(label = paste0(Hold_Period, " yrs")), hjust = -0.2, size = 3.5) +
+  xlim(0, 25) +
+  theme_minimal() +
+  labs(
+    title = "Top 5 Sydney Suburbs Homeowners Hold Longest",
+    x = "Median Hold Period (Years)",
+    y = "Suburb"
+  )
+```
+
+---
+
+## Exercise %: Integration with Week 2 Lecture Concepts
+
+### 1. Cleveland & McGill's Perceptual Hierarchy
+Cleveland and McGill (1984) ranked graphical perception tasks by human visual accuracy[cite: 53]:
+1. **Position along a common scale** *(Most Accurate)*[cite: 53]
+2. **Position on identical but unaligned scales**[cite: 53]
+3. **Length**[cite: 53]
+4. **Angle / Slope**[cite: 53]
+5. **Area**[cite: 53]
+6. **Volume**[cite: 53]
+7. **Color Hue / Saturation / Density** *(Least Accurate)*[cite: 53]
+
+**Application to SGTA Exercises:**
+* In **Exercise 1**, a boxplot was used to map prices onto a **position along a common scale** (y-axis), enabling an accurate comparison of medians and spreads between Allawah and Hurstville[cite: 1, 2, 53].
+* In **Exercise 2**, horizontal bar charts used **length and position along a common scale** to compare country and division frequencies, avoiding 3D charts or pie charts (which rely on angle, area, or volume)[cite: 3, 50, 53].
+
+---
+
+### 2. Avoiding Wainer's "How to Display Data Badly" Rules
+The report corrections directly address several common flaws outlined by Howard Wainer (1984)[cite: 21, 24]:
+
+* **Rule 1 & 11 (Data Density & "More is Murkier"):** The clean ggplot layouts remove chartjunk, 3D effects, and excessive decimal places[cite: 21, 50, 52].
+* **Rule 4 & 9 ("Alabama First!"):** In Exercises 2 and 4, categories were sorted by **frequency/magnitude** rather than alphabetically, preventing hidden structures from being obscured[cite: 3, 4, 46].
+* **Rule 10 (Labeling):** Clear axis titles and formatted dollar units (`$1,050,000` rather than raw numbers) ensure complete and unambiguous labeling[cite: 4, 48, 52].
+
+---
+
+### 3. Tufte’s Lie Factor & Data-to-Ink Ratio
+* **Data-to-Ink Ratio:** Maximized by using minimalist themes (`theme_minimal()`) and removing unnecessary grid background shading[cite: 25, 52].
+* **Lie Factor ($L.F. = 1$):** By ensuring bar lengths match actual values starting from a true zero baseline, the graphic effect equals the data effect, avoiding distortion ($L.F. = \frac{\text{Effect in Graphic}}{\text{Effect in Data}}$)[cite: 34, 36].
